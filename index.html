@@ -161,4 +161,213 @@ function penalty(target,qty){if(game.shield?.[target]){game.shield[target]--;set
 $('profileBtn').addEventListener('click',displayProgress);$('settingsBtn').addEventListener('click',settingsScreen);$('tutorialBtn').addEventListener('click',()=>showTutorial());$('tourneyBtn').addEventListener('click',openTournament);$('modePass').addEventListener('click',beginPassPlay);$('modeTournament').addEventListener('click',openTournament);$('saveBtn').addEventListener('click',saveGame);$('resumeBtn').addEventListener('click',restoreGame);$('powerBtn').addEventListener('click',spendSpark);
 $('soundBtn').addEventListener('click',()=>{sound=!sound;$('soundBtn').textContent='Sound: '+(sound?'On':'Off');$('soundBtn').setAttribute('aria-pressed',String(sound));playSound('pick')});$('rulesBtn').addEventListener('click',openRules);$('startBtn').addEventListener('click',()=>startGame('solo'));$('leaveBtn').addEventListener('click',()=>{if(confirm('Leave this match? Save first if you want to resume later.'))exitGame()});$('drawBtn').addEventListener('click',humanDraw);$('drawPile').addEventListener('click',humanDraw);$('passBtn').addEventListener('click',passTurn);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pending?.type==='rules')closeDialog()});paintSubjectGrid();initialDecor();applySettings();menuStatus();show('home');
 </script>
+
+<style id="cca-v3-style">
+body[data-deck-theme="arcane"] .card:not(.card-back){border-color:#f7df8f;box-shadow:0 8px 22px rgba(70,26,122,.32),0 0 0 2px rgba(255,235,168,.18) inset}
+body[data-deck-theme="arcane"] .card-face-oval{background:radial-gradient(circle at 50% 40%,rgba(255,250,227,.88),rgba(255,231,177,.55) 50%,rgba(255,211,113,.18) 72%,transparent 74%)}
+body[data-deck-theme="neon"] .card:not(.card-back){border-color:#89fbff;box-shadow:0 0 0 1px rgba(255,255,255,.15) inset,0 0 18px rgba(81,252,255,.24),0 10px 28px rgba(2,12,45,.45)}
+body[data-deck-theme="neon"] .card-face-oval{background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.95),rgba(147,255,255,.5) 50%,rgba(88,87,255,.14) 72%,transparent 74%)}
+body[data-deck-theme="pixel"] .card{border-radius:10px!important;image-rendering:pixelated;box-shadow:6px 6px 0 rgba(8,17,44,.32)}
+body[data-deck-theme="pixel"] .card-face-oval{border-radius:14px;box-shadow:0 0 0 4px rgba(255,255,255,.09) inset;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.95),rgba(255,255,255,.48) 42%,rgba(255,255,255,.09) 43%,transparent 44%)}
+body[data-deck-theme="pixel"] .card-corner,body[data-deck-theme="pixel"] .card-big{font-family:'Trebuchet MS',system-ui,sans-serif;letter-spacing:0}
+body[data-deck-theme="nature"] .card:not(.card-back){border-color:#c9f0b3;box-shadow:0 8px 22px rgba(31,88,44,.28)}
+body[data-deck-theme="nature"] .card-face-oval{background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.92),rgba(198,255,207,.48) 52%,rgba(59,155,89,.14) 72%,transparent 74%)}
+#fxLayer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1200}
+.fly-card{position:fixed;z-index:1201;pointer-events:none;filter:drop-shadow(0 14px 24px rgba(8,12,42,.35));transform-origin:center center;transition:transform .55s cubic-bezier(.2,.8,.25,1),left .55s cubic-bezier(.2,.8,.25,1),top .55s cubic-bezier(.2,.8,.25,1),opacity .55s ease}
+.reduced-motion .fly-card{transition:none}
+.start-intro{position:fixed;left:50%;top:16%;transform:translateX(-50%) scale(.85);background:linear-gradient(135deg,rgba(24,31,79,.95),rgba(62,32,111,.93));border:1px solid rgba(255,255,255,.18);box-shadow:0 18px 40px rgba(0,0,0,.35);color:#fff;padding:16px 22px;border-radius:20px;text-align:center;z-index:1202;opacity:0;transition:opacity .35s ease,transform .35s ease;pointer-events:none;max-width:min(90vw,460px)}
+.start-intro.show{opacity:1;transform:translateX(-50%) scale(1)}
+.start-intro .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#8ff1ff;font-weight:900}
+.start-intro .title{font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;font-size:34px;letter-spacing:.04em;margin-top:4px}
+.start-intro .sub{font-size:13px;color:#dfe9ff;margin-top:4px}
+.rival-title{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:#90f7dc;font-weight:800;margin-top:1px}
+.rival-bubble{margin-top:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);padding:4px 8px;border-radius:999px;font-size:10px;color:#eff7ff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.rival.current .rival-bubble{background:rgba(255,235,135,.15);color:#fff7be}
+.rival-portrait{position:relative}
+.rival.current .rival-portrait:after{content:'';position:absolute;inset:-6px;border-radius:18px;border:2px solid rgba(255,235,135,.75);box-shadow:0 0 14px rgba(255,235,135,.45)}
+.house-rules-panel{grid-column:1/-1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);padding:12px 12px 8px;border-radius:16px}
+.house-rules-panel h3{margin:0 0 8px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#aef4ff}
+.house-rules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.house-rules-grid label{display:block;font-size:11px;color:#d6e3ff;margin-bottom:4px}
+.match-spotlight{animation:ccaSpot 1.2s ease}
+@keyframes ccaSpot{0%{transform:scale(.94);opacity:.2}100%{transform:scale(1);opacity:1}}
+.opening-burst{position:absolute;inset:0;background:radial-gradient(circle at center,rgba(255,255,255,.18),transparent 55%);opacity:0;pointer-events:none}
+.opening-burst.show{animation:burst .9s ease}
+@keyframes burst{0%{opacity:0;transform:scale(.6)}25%{opacity:1}100%{opacity:0;transform:scale(1.3)}}
+body.reduced-motion .start-intro,body.reduced-motion .opening-burst.show{animation:none!important;transition:none!important}
+</style>
+
+<script id="cca-v3-patch">
+(function(){
+  Object.assign(settingsDefaults,{deckTheme:'classic',handSize:7,stacking:false,drawUntilPlay:false,forcePlay:false,sevenZero:false,wildChallenge:false,startIntro:true});
+  settings=Object.assign({},settingsDefaults,settings||{});
+  const RIVAL_INFO={
+    NOVA:{title:'Blazing Fox',idle:'I’ve got a spark ready.',turn:'My move now!',uno:'UNO! Catch me if you can!'},
+    RUNE:{title:'Moon Owl',idle:'Patterns reveal the answer.',turn:'Let’s think this through.',uno:'One card left. Careful.'},
+    BOLT:{title:'Storm Bot',idle:'Systems charged and ready.',turn:'Executing best move.',uno:'Alert: UNO state reached.'},
+    PLAYER:{title:'Arcade Challenger',idle:'Ready to play.'}
+  };
+  function interceptClick(id,fn){const el=$(id);if(!el)return;el.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();fn(e);},true)}
+  function ensureFx(){
+    if(!$('fxLayer')){const layer=document.createElement('div');layer.id='fxLayer';document.body.appendChild(layer)}
+    if(!$('introBanner')){const b=document.createElement('div');b.id='introBanner';b.className='start-intro';document.body.appendChild(b)}
+  }
+  function bodyRect(el){const r=(el||document.body).getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height}}
+  function centerOf(el){const r=bodyRect(el);return {x:r.left+r.width/2,y:r.top+r.height/2,width:r.width,height:r.height}}
+  function animateCardTravel(cardHtml,fromEl,toEl,opts={}){
+    ensureFx();
+    if(settings.reduced)return;
+    const from=bodyRect(fromEl||$('drawPile')),to=bodyRect(toEl||$('discardPile')); if(!from.width||!to.width)return;
+    const wrap=document.createElement('div');wrap.className='fly-card '+(opts.extra||'');wrap.style.left=from.left+'px';wrap.style.top=from.top+'px';wrap.style.width=Math.max(58,from.width*0.7)+'px';wrap.style.height=Math.max(84,from.height*0.7)+'px';wrap.style.opacity='1';wrap.innerHTML=cardHtml; const inner=wrap.firstElementChild; if(inner){inner.style.width='100%';inner.style.height='100%';inner.style.margin='0'}
+    $('fxLayer').appendChild(wrap);
+    requestAnimationFrame(()=>{wrap.style.left=(to.left+(to.width-from.width)/2)+'px';wrap.style.top=(to.top+(to.height-from.height)/2)+'px';wrap.style.transform=`rotate(${opts.rotate||0}deg) scale(${opts.scale||.92})`;wrap.style.opacity='0.08'});
+    setTimeout(()=>wrap.remove(),settings.reduced?40:620);
+  }
+  function introBanner(title,sub){
+    ensureFx();
+    const b=$('introBanner');
+    b.innerHTML=`<div class="eyebrow">Prism Match</div><div class="title">${esc(title)}</div><div class="sub">${esc(sub||'Match colors. Answer challenges. Spark your powers.')}</div>`;
+    b.classList.add('show');
+    setTimeout(()=>b.classList.remove('show'),1700);
+  }
+  function dealIntro(){
+    if(settings.reduced||!settings.startIntro)return;
+    const burst=document.createElement('div');burst.className='opening-burst show'; $('playArea')?.appendChild(burst); setTimeout(()=>burst.remove(),1000);
+    const destinations=[...document.querySelectorAll('#opponents .rival'),$('handViewport')].filter(Boolean);
+    for(let round=0;round<2;round++)destinations.forEach((dest,i)=>setTimeout(()=>animateCardTravel(cardFace({c:'red',t:'num',v:5},{back:true}),$('drawPile'),dest,{rotate:(i-round)*6}),100+round*90+i*90));
+  }
+  function rivalSpeech(p,idx){const info=RIVAL_INFO[p.name]||RIVAL_INFO.PLAYER;if(game?.pendingStack&&game.pendingStack.target===idx+1)return `Under pressure: +${game.pendingStack.amount}!`; if(game?.turn===idx+1)return info.turn; if(p.hand.length===1)return info.uno; if(p.hand.length<=3)return 'Closing in…'; return info.idle}
+  const originalApplySettings=applySettings;
+  applySettings=function(){originalApplySettings();document.body.dataset.deckTheme=settings.deckTheme||'classic';document.body.classList.toggle('theme-fancy',!!settings.startIntro)};
+  const originalSettingsScreen=settingsScreen;
+  settingsScreen=function(){
+    originalSettingsScreen();
+    const grid=document.querySelector('#dialog .setting-grid'); if(!grid) return;
+    if(!document.getElementById('deckTheme')){
+      const panel=document.createElement('div'); panel.className='house-rules-panel';
+      panel.innerHTML=`<h3>Expanded game options</h3>
+      <div class="house-rules-grid">
+        <div><label for="deckTheme">Deck style</label><select id="deckTheme"><option value="classic">Prism Classic</option><option value="arcane">Arcane Glow</option><option value="neon">Neon Arcade</option><option value="pixel">Pixel Pop</option><option value="nature">Nature Quest</option></select></div>
+        <div><label for="handSize">Starting hand size</label><select id="handSize"><option value="5">5 cards</option><option value="7">7 cards</option><option value="10">10 cards</option></select></div>
+        <div><label for="stacking">Draw-card stacking</label><select id="stacking"><option value="false">Off</option><option value="true">On</option></select></div>
+        <div><label for="drawUntilPlay">Draw until playable</label><select id="drawUntilPlay"><option value="false">Off</option><option value="true">On</option></select></div>
+        <div><label for="forcePlay">Force play after draw</label><select id="forcePlay"><option value="false">Off</option><option value="true">On</option></select></div>
+        <div><label for="sevenZero">7-0 hand swap rule</label><select id="sevenZero"><option value="false">Off</option><option value="true">On</option></select></div>
+        <div><label for="wildChallenge">Wild +4 challenge reminder</label><select id="wildChallenge"><option value="false">Off</option><option value="true">On</option></select></div>
+        <div><label for="startIntro">Match intro animation</label><select id="startIntro"><option value="true">On</option><option value="false">Off</option></select></div>
+      </div>`;
+      grid.parentNode.insertBefore(panel, grid.nextSibling);
+    }
+    [['deckTheme','deckTheme'],['handSize','handSize'],['stacking','stacking'],['drawUntilPlay','drawUntilPlay'],['forcePlay','forcePlay'],['sevenZero','sevenZero'],['wildChallenge','wildChallenge'],['startIntro','startIntro']].forEach(([id,key])=>{const el=$(id); if(el) el.value=String(settings[key])});
+    $('sDone').onclick=()=>{
+      for(const [el,key] of [['difficulty','difficulty'],['teacherSubject','teacherSubject'],['qmode','questions'],['deckTheme','deckTheme']]) settings[key]=$(el).value;
+      settings.timer=Number($('timer').value); settings.contrast=$('contrast').value==='true'; settings.reduced=$('reduced').value==='true';
+      settings.handSize=Number($('handSize').value); settings.stacking=$('stacking').value==='true'; settings.drawUntilPlay=$('drawUntilPlay').value==='true'; settings.forcePlay=$('forcePlay').value==='true'; settings.sevenZero=$('sevenZero').value==='true'; settings.wildChallenge=$('wildChallenge').value==='true'; settings.startIntro=$('startIntro').value==='true';
+      storeSettings(); applySettings(); closeDialog(); toast('Settings saved');
+    };
+  };
+  const originalRender=render;
+  render=function(){
+    originalRender();
+    document.querySelectorAll('#opponents .rival').forEach((el,i)=>{
+      const p=game?.players?.[i+1]; if(!p) return; const info=RIVAL_INFO[p.name]||RIVAL_INFO.PLAYER; const meta=el.querySelector('.rival-meta'); if(!meta) return;
+      let title=meta.querySelector('.rival-title'); if(!title){title=document.createElement('div'); title.className='rival-title'; meta.insertBefore(title, meta.querySelector('.rival-cards'));}
+      title.textContent=info.title;
+      let bubble=meta.querySelector('.rival-bubble'); if(!bubble){bubble=document.createElement('div'); bubble.className='rival-bubble'; meta.appendChild(bubble)}
+      bubble.textContent=rivalSpeech(p,i);
+    });
+  };
+  function promptChooseColor(callback){showDialog(`<div class="chip">PRISM COLOR</div><h2 id="dialogTitle">Choose the next color</h2><p>Pick the color that becomes active.</p><div class="color-pick">${COLOR_NAMES.map(c=>`<button type="button" class="pick ${c}" data-c="${c}">${c.toUpperCase()}</button>`).join('')}</div>`);document.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{closeDialog();callback(b.dataset.c)})}
+  function rotateHands(){const hands=game.players.map(p=>p.hand); if(game.dir===1){for(let i=game.players.length-1;i>0;i--)game.players[i].hand=hands[i-1]; game.players[0].hand=hands[hands.length-1]} else {for(let i=0;i<hands.length-1;i++)game.players[i].hand=hands[i+1]; game.players[hands.length-1].hand=hands[0]}}
+  function bestSwapTarget(pid){let ids=game.players.map((p,i)=>({i,n:p.hand.length})).filter(x=>x.i!==pid); ids.sort((a,b)=>b.n-a.n); return ids[0]?.i ?? getNext(pid)}
+  const originalStartGame=startGame;
+  startGame=function(mode='solo'){
+    gameMode=mode;session++;grade=Number($('gradeSelect').value);if(settings.teacherSubject!=='all'&&mode!=='tournament')subject=settings.teacherSubject;roundQuestionIds.clear();const deck=makeDeck();const playerNames=mode==='pass'?Array.from({length:window._passCount||2},(_,i)=>'PLAYER '+(i+1)):NAMES;const players=playerNames.map((name,i)=>({name,hand:[],kind:mode==='pass'||i===0?'human':'ai'}));
+    const handSize=Math.max(1,Number(settings.handSize)||7);
+    for(let n=0;n<handSize;n++)for(let i=0;i<players.length;i++)players[i].hand.push(deck.pop());
+    let top;while(true){top=deck.pop();if(top.t==='num')break;deck.unshift(top);shuffle(deck)}
+    game={players,deck,discard:[top],top,active:top.c,turn:0,dir:1,drawn:false,nums:0,sparks:0,lastSubject:null,ended:false,stats:{asked:0,right:0,streak:0},message:'Your move! Pick a matching card.',moves:0,mode,shield:{},sparkByPlayer:Array(players.length).fill(0),bonusMode:false,pendingStack:null,lastSpecial:null};
+    locked=false;pending=null;closeDialog();show('game');$('gameSubject').textContent=SUBJECTS.find(x=>x.id===subject).name;$('gameGrade').textContent=grade===4?'Foundations':'Grade '+grade;$('gameMode').textContent=mode==='tournament'?`Tournament ${tourneyStage+1}/5`:mode==='pass'?'Pass & Play':'Solo Arena';render();applySettings();playSound('start');if(settings.startIntro)introBanner(mode==='tournament'?'Tournament Battle':'Match Start',`${SUBJECTS.find(x=>x.id===subject).name} · ${grade===4?'Foundations':'Grade '+grade}`);setTimeout(dealIntro,80); if(mode==='pass')passHandoff();
+  };
+  const originalCanPlay=canPlay;
+  canPlay=function(card,player=game.players[game.turn]){
+    if(game?.pendingStack && player===game.players[game.turn]) return card.t===game.pendingStack.type;
+    return originalCanPlay(card,player);
+  };
+  const originalPlayCard=playCard;
+  playCard=function(pid,index){
+    if(!game||game.ended) return; const player=game.players[pid]; const c=player.hand[index]; if(!c) return;
+    const fromEl = pid===currentHuman()? document.querySelector(`#hand [data-card-index="${index}"]`) : (document.querySelectorAll('#opponents .rival')[pid-1] || $('opponents'));
+    if(fromEl) animateCardTravel(cardFace(c,{back:(pid!==currentHuman()&&gameMode!=='pass')}), fromEl, $('discardPile'), {rotate: pid===currentHuman()?2:-4});
+    game.lastSpecial = settings.sevenZero && c.t==='num' && (c.v===0 || c.v===7) ? {pid,value:c.v} : null;
+    if(settings.wildChallenge && c.t==='wild4' && pid!==0) toast(player.name+' used Wild +4. In classic UNO, players can optionally challenge that play.');
+    return originalPlayCard(pid,index);
+  };
+  const originalResolvePower=resolvePower;
+  resolvePower=function(pid,c,correct){
+    if(!game||game.ended)return; let activate=correct; if(game.players[pid].kind==='ai')activate=Math.random()<(settings.difficulty==='easy'?.56:settings.difficulty==='hard'?.97:.80); if(activate){progress.powers+=(game.players[pid].kind==='human'?1:0);achievementsCheck()} let hops=1; const next=getNext(pid);
+    if(activate){
+      if(c.t==='reverse'){game.dir*=-1;if(game.players.length===2)hops=2;setMessage(game.players[pid].name+' reversed the turn direction!')}
+      if(c.t==='skip'){hops=2;setMessage(game.players[next].name+' got SKIPPED!')}
+      if(c.t==='draw2'){
+        if(settings.stacking){const amt=(game.pendingStack?.amount||0)+2; game.pendingStack={amount:amt,type:'draw2',target:next}; setMessage(game.players[next].name+' must stack another +2 or draw '+amt+' cards!'); hops=1}
+        else {penalty(next,2);hops=2;setMessage(game.players[next].name+' received +2 (shield may block)!')}
+      }
+      if(c.t==='wild4'){
+        if(settings.stacking){const amt=(game.pendingStack?.amount||0)+4; game.pendingStack={amount:amt,type:'wild4',target:next}; setMessage(game.players[next].name+' must stack another +4 or draw '+amt+' cards!'); hops=1}
+        else {penalty(next,4);hops=2;setMessage('PRISM SURGE! +4 (shield may block)!')}
+      }
+      if(['reverse','skip','draw2','wild4'].includes(c.t))playSound('power');
+    } else if(['reverse','skip','draw2','wild4'].includes(c.t)) setMessage(game.players[pid].name+'’s '+c.t.toUpperCase()+' power fizzled! Color still changed if it was a wild.');
+    nextTurn(pid,hops)
+  };
+  const originalNextTurn=nextTurn;
+  nextTurn=function(pid,steps){
+    if(game?.lastSpecial && settings.sevenZero){const evt=game.lastSpecial; game.lastSpecial=null; if(evt.value===0){rotateHands(); toast('7-0 rule: hand rotation!')} else if(evt.value===7){const target=bestSwapTarget(evt.pid); [game.players[evt.pid].hand,game.players[target].hand]=[game.players[target].hand,game.players[evt.pid].hand]; toast(game.players[evt.pid].name+' swapped hands with '+game.players[target].name+'!')}}
+    originalNextTurn(pid,steps);
+  };
+  function drawPenaltyForCurrent(){const amt=game.pendingStack?.amount||0; const pid=currentHuman(); for(let i=0;i<amt;i++){drawOne(pid); progress.draws++} const msg='You drew '+amt+' penalty cards.'; game.pendingStack=null; setMessage(msg); render(); setTimeout(()=>nextTurn(pid,1),320);}
+  humanDraw=function(){
+    if(!mayAct())return;
+    const pid=currentHuman();
+    if(game.pendingStack && game.turn===pid){drawPenaltyForCurrent(); achievementsCheck(); return;}
+    let drew=0, ok=false;
+    const drawLoop=()=>{ok=drawOne(pid); if(ok){drew++; progress.draws++; achievementsCheck();} return ok};
+    if(settings.drawUntilPlay){
+      do{ if(!drawLoop()) break; } while(!game.players[pid].hand.some(c=>canPlay(c,game.players[pid])));
+    } else drawLoop();
+    if(!ok){setMessage('No more cards are available. Your turn passes.');nextTurn(pid,1);return}
+    game.drawn=true;
+    const playableIdx=game.players[pid].hand.findIndex(c=>canPlay(c,game.players[pid]));
+    setMessage(drew>1?`You drew ${drew} cards.`:'You drew a card.'); playSound('draw'); render();
+    if(settings.forcePlay && playableIdx>=0){setTimeout(()=>{if(game&&game.turn===pid&&!pending) playCard(pid,playableIdx)},260); return}
+    $('handHint').textContent = settings.drawUntilPlay ? 'You drew until a playable card appeared. Play a match or pass.' : 'Play a match or pass your turn.';
+  };
+  passTurn=function(){ if(!mayAct())return; if(game.pendingStack && game.turn===currentHuman()){drawPenaltyForCurrent(); return} if(!game.drawn && !settings.forcePlay){toast('Draw first, or play a card.'); return} setMessage('You passed your turn.'); nextTurn(currentHuman(),1)};
+  aiMove=function(){
+    let pid=game.turn,p=game.players[pid];
+    if(game.pendingStack && game.pendingStack.target===pid){
+      let stackIndex=p.hand.findIndex(c=>c.t===game.pendingStack.type);
+      if(stackIndex>=0){playCard(pid,stackIndex); return}
+      const amt=game.pendingStack.amount; for(let i=0;i<amt;i++)drawOne(pid); setMessage(p.name+' drew '+amt+' penalty cards.'); game.pendingStack=null; render(); let s=session; setTimeout(()=>{if(s!==session||!game||game.ended)return; nextTurn(pid,1)},550); return;
+    }
+    let playable=p.hand.map((c,i)=>({c,i})).filter(x=>canPlay(x.c,p));
+    if(!playable.length){
+      let drew=0, playableAfter=[]; const drawStop=()=>{let ok=drawOne(pid); if(!ok) return false; drew++; playableAfter=p.hand.map((c,i)=>({c,i})).filter(x=>canPlay(x.c,p)); return true};
+      if(settings.drawUntilPlay){while(playableAfter.length===0){ if(!drawStop()) break; if(playableAfter.length) break }} else drawStop();
+      setMessage(p.name+(drew?` drew ${drew} card${drew===1?'':'s'}.`:' had no cards left to draw.')); render(); let s=session; setTimeout(()=>{if(s!==session||!game||game.ended||game.turn!==pid)return; const refreshed=p.hand.map((c,i)=>({c,i})).filter(x=>canPlay(x.c,p)); if(refreshed.length && (settings.forcePlay || Math.random()<.85)) playCard(pid, refreshed[refreshed.length-1].i); else nextTurn(pid,1)},700); return;
+    }
+    const ordinary=playable.filter(x=>x.c!=='wild'); if(ordinary.length)playable=ordinary; const special=playable.filter(x=>x.c===game.active); if(special.length)playable=special;
+    let choice; if(settings.difficulty==='easy')choice=playable[rand(playable.length)]; else if(settings.difficulty==='hard'){let rank=x=>(x.c===game.active?4:0)+(x.c==='wild'?-6:0)+(p.hand.filter(y=>y.c===x.c).length)+(x.c.t==='draw2'||x.c.t==='skip'?2:0);choice=playable.slice().sort((a,b)=>rank(b)-rank(a))[0]} else choice=playable[rand(playable.length)]; playCard(pid,choice.i)
+  };
+  const originalStoreMenu=menuStatus; menuStatus=function(){originalStoreMenu(); const el=$('extraHomeStatus'); if(el) el.textContent += ` • ${settings.deckTheme.charAt(0).toUpperCase()+settings.deckTheme.slice(1)} deck`; };
+  // Update README-facing visible text
+  const homeHelp=document.querySelector('#home .game-help'); if(homeHelp) homeHelp.innerHTML = '<button id="resumeBtn" class="small-btn hidden" type="button">Resume saved match</button> No student accounts. No online data sharing. 1,011 included questions, animated card motion, deck themes, and house-rule options. Works on Chromebooks and phones.';
+  applySettings(); if(typeof menuStatus==='function') menuStatus();
+  interceptClick('settingsBtn',()=>settingsScreen());
+  interceptClick('resumeBtn',()=>restoreGame());
+  interceptClick('drawBtn',()=>humanDraw()); interceptClick('drawPile',()=>humanDraw()); interceptClick('passBtn',()=>passTurn());
+})();
+</script>
+
 </body></html>
