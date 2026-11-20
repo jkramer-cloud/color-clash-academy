@@ -137,7 +137,7 @@ function render(){if(!game)return;$('gameDirection').textContent=game.dir===1?'�
 function humanPlay(index){if(!mayAct())return;const pid=currentHuman();const card=game.players[pid].hand[index];if(!card)return;if(!canPlay(card,game.players[pid])){toast(card.t==='wild4'?'You can use Prism Surge +4 only when you have no card matching the active color.':'That card does not match. Choose the active color, a matching symbol, or a wild card.');playSound('bad');return}playCard(pid,index)}
 function playCard(pid,index){if(!game||game.ended)return;const player=game.players[pid];const c=player.hand.splice(index,1)[0];game.discard.push(c);game.top=c;game.moves++;game.drawn=false;locked=true;setMessage(player.name+' played '+(c.c==='wild'?'a PRISM card':c.c.toUpperCase()+' '+(c.t==='num'?c.v:c.t.toUpperCase()))+'.');
  const continuePlay=(chosen)=>{if(chosen)game.active=chosen;else if(c.c!=='wild')game.active=c.c;if(player.hand.length===0){finish(pid);return}const isAction=['skip','reverse','draw2','wild4'].includes(c.t);if(game.players[pid].kind==='human'){if(isAction){render();askQuestion('power',ok=>resolvePower(pid,c,ok))}else if(c.t==='num'){game.nums++;if(settings.questions==='frequent'||(settings.questions==='all'&&game.nums%2===0)){render();askQuestion('spark',ok=>{if(ok){game.sparks++;progress.sparks++;achievementsCheck();if(game.sparks>=3){game.sparks=0;const target=getNext(pid);drawOne(target);setMessage('SPARK BURST! '+game.players[target].name+' drew one bonus card.');playSound('good')}else setMessage('Spark earned! '+game.sparks+' of 3.')}else setMessage('No Spark this time — play continues.');nextTurn(pid,1)})}else nextTurn(pid,1)}else nextTurn(pid,1)}else{resolvePower(pid,c,true)}};
- if(c.c==='wild'){if(game.players[pid].kind==='human'){render();chooseColor(continuePlay)}else {const counts=COLOR_NAMES.map(col=>player.hand.filter(x=>x.c===col).length);const best=Math.max(...counts);const options=COLOR_NAMES.filter((_,i)=>counts[i]===best);continuePlay(options[rand(options.length)])}}else continuePlay(null)
+ window.ccaUnoRace(pid,()=>{if(c.c==='wild'){if(game.players[pid].kind==='human'){render();chooseColor(continuePlay)}else {const counts=COLOR_NAMES.map(col=>player.hand.filter(x=>x.c===col).length);const best=Math.max(...counts);const options=COLOR_NAMES.filter((_,i)=>counts[i]===best);continuePlay(options[rand(options.length)])}}else continuePlay(null)})
 }
 function resolvePower(pid,c,correct){if(!game||game.ended)return;let activate=correct;if(game.players[pid].kind==='ai')activate=Math.random()<(settings.difficulty==='easy'?.56:settings.difficulty==='hard'?.97:.80);if(activate){progress.powers+=(game.players[pid].kind==='human'?1:0);achievementsCheck()}let hops=1;const next=getNext(pid);if(activate){if(c.t==='reverse'){game.dir*=-1;if(game.players.length===2)hops=2;setMessage(game.players[pid].name+' reversed the turn direction!')}if(c.t==='skip'){hops=2;setMessage(game.players[next].name+' got SKIPPED!')}if(c.t==='draw2'){penalty(next,2);hops=2;setMessage(game.players[next].name+' received +2 (shield may block)!')}if(c.t==='wild4'){penalty(next,4);hops=2;setMessage('PRISM SURGE! +4 (shield may block)!')}if(c.t==='reverse'||c.t==='skip'||c.t==='draw2'||c.t==='wild4')playSound('power')}else if(['reverse','skip','draw2','wild4'].includes(c.t)){setMessage(game.players[pid].name+'’s '+c.t.toUpperCase()+' power fizzled! Color still changed if it was a wild.')}
  nextTurn(pid,hops)
@@ -145,7 +145,7 @@ function resolvePower(pid,c,correct){if(!game||game.ended)return;let activate=co
 function nextTurn(pid,steps){if(!game||game.ended)return;if(gameMode==='pass'){game.sparkByPlayer??=Array(game.players.length).fill(0);game.sparkByPlayer[pid]=game.sparks;}game.turn=getNext(pid,steps);if(gameMode==='pass')game.sparks=game.sparkByPlayer[game.turn]||0;game.drawn=false;locked=false;render();if(gameMode==='pass')passHandoff();else if(game.turn!==0)queueAI();else if(!game.message.includes('SKIP')&&!game.message.includes('drew'))setMessage('Your move! '+game.players[0].hand.length+' cards left.');}
 function humanDraw(){if(!mayAct()||game.drawn)return;const success=drawOne(currentHuman());if(success){progress.draws++;achievementsCheck()}if(!success){setMessage('No more cards are available. Your turn passes.');nextTurn(currentHuman(),1);return}game.drawn=true;setMessage('You drew a card. Play a match or pass your turn.');playSound('draw');render()}
 function passTurn(){if(!mayAct()||!game.drawn)return;setMessage('You passed your turn.');nextTurn(currentHuman(),1)}
-function queueAI(){let s=session;setTimeout(()=>{if(!game||game.ended||s!==session||game.turn===0||locked||pending)return;aiMove()},750)}
+function queueAI(){let s=session;setTimeout(()=>{if(!game||game.ended||s!==session||game.turn===0||locked||pending)return;if(!$('overlay').classList.contains('hidden')){queueAI();return}aiMove()},750)}
 function aiMove(){let pid=game.turn,p=game.players[pid];let playable=p.hand.map((c,i)=>({c,i})).filter(x=>canPlay(x.c,p));if(!playable.length){let ok=drawOne(pid);setMessage(p.name+(ok?' drew a card.':' had no cards left to draw.'));render();let s=session;setTimeout(()=>{if(s!==session||!game||game.ended||game.turn!==pid)return;const last=p.hand[p.hand.length-1];if(ok&&canPlay(last,p)&&Math.random()<.85)playCard(pid,p.hand.length-1);else nextTurn(pid,1)},700);return}
  // Prefer non-wild cards when possible; prefer matching color to keep wild options in reserve.
  const ordinary=playable.filter(x=>x.c!=='wild');if(ordinary.length)playable=ordinary;const special=playable.filter(x=>x.c===game.active);if(special.length)playable=special;let choice;if(settings.difficulty==='easy')choice=playable[rand(playable.length)];else if(settings.difficulty==='hard'){let rank=x=>(x.c===game.active?4:0)+(x.c==='wild'?-6:0)+(p.hand.filter(y=>y.c===x.c).length)+(x.t==='draw2'||x.t==='skip'?2:0);choice=playable.slice().sort((a,b)=>rank(b.c)-rank(a.c))[0]}else choice=playable[rand(playable.length)];playCard(pid,choice.i)}
@@ -236,7 +236,7 @@ body.reduced-motion .start-intro,body.reduced-motion .opening-burst.show{animati
     const destinations=[...document.querySelectorAll('#opponents .rival'),$('handViewport')].filter(Boolean);
     for(let round=0;round<2;round++)destinations.forEach((dest,i)=>setTimeout(()=>animateCardTravel(cardFace({c:'red',t:'num',v:5},{back:true}),$('drawPile'),dest,{rotate:(i-round)*6}),100+round*90+i*90));
   }
-  function rivalSpeech(p,idx){const info=RIVAL_INFO[p.name]||RIVAL_INFO.PLAYER;if(game?.pendingStack&&game.pendingStack.target===idx+1)return `Under pressure: +${game.pendingStack.amount}!`; if(game?.turn===idx+1)return info.turn; if(p.hand.length===1)return info.uno; if(p.hand.length<=3)return 'Closing in…'; return info.idle}
+  function rivalSpeech(p,idx){const info=RIVAL_INFO[p.name]||RIVAL_INFO.PLAYER;if(game?.pendingStack&&game.pendingStack.target===idx+1)return `Under pressure: +${game.pendingStack.amount}!`; if(game?.turn===idx+1)return info.turn; if(p.hand.length===1)return p.unoDeclared?'UNO! Declared.':'One card left.'; if(p.hand.length<=3)return 'Closing in…'; return info.idle}
   const originalApplySettings=applySettings;
   applySettings=function(){originalApplySettings();document.body.dataset.deckTheme=settings.deckTheme||'classic';document.body.classList.toggle('theme-fancy',!!settings.startIntro)};
   const originalSettingsScreen=settingsScreen;
@@ -326,7 +326,7 @@ body.reduced-motion .start-intro,body.reduced-motion .opening-burst.show{animati
     if(game?.lastSpecial && settings.sevenZero){const evt=game.lastSpecial; game.lastSpecial=null; if(evt.value===0){rotateHands(); toast('7-0 rule: hand rotation!')} else if(evt.value===7){const target=bestSwapTarget(evt.pid); [game.players[evt.pid].hand,game.players[target].hand]=[game.players[target].hand,game.players[evt.pid].hand]; toast(game.players[evt.pid].name+' swapped hands with '+game.players[target].name+'!')}}
     originalNextTurn(pid,steps);
   };
-  function drawPenaltyForCurrent(){const amt=game.pendingStack?.amount||0; const pid=currentHuman(); for(let i=0;i<amt;i++){drawOne(pid); progress.draws++} const msg='You drew '+amt+' penalty cards.'; game.pendingStack=null; setMessage(msg); render(); setTimeout(()=>nextTurn(pid,1),320);}
+  function drawPenaltyForCurrent(){const amt=game.pendingStack?.amount||0; const pid=currentHuman(); for(let i=0;i<amt;i++){drawOne(pid); progress.draws++} const msg='You drew '+amt+' penalty cards.'; game.pendingStack=null; locked=true; setMessage(msg); render(); const owner=game,sid=session; setTimeout(()=>{if(game===owner&&session===sid&&!game.ended)nextTurn(pid,1)},320);}
   humanDraw=function(){
     if(!mayAct())return;
     const pid=currentHuman();
@@ -340,7 +340,7 @@ body.reduced-motion .start-intro,body.reduced-motion .opening-burst.show{animati
     game.drawn=true;
     const playableIdx=game.players[pid].hand.findIndex(c=>canPlay(c,game.players[pid]));
     setMessage(drew>1?`You drew ${drew} cards.`:'You drew a card.'); playSound('draw'); render();
-    if(settings.forcePlay && playableIdx>=0){setTimeout(()=>{if(game&&game.turn===pid&&!pending) playCard(pid,playableIdx)},260); return}
+    if(settings.forcePlay && playableIdx>=0){const owner=game,sid=session,moves=game.moves;setTimeout(()=>{if(game===owner&&session===sid&&game.moves===moves&&game.turn===pid&&!locked&&!pending) playCard(pid,playableIdx)},260); return}
     $('handHint').textContent = settings.drawUntilPlay ? 'You drew until a playable card appeared. Play a match or pass.' : 'Play a match or pass your turn.';
   };
   passTurn=function(){ if(!mayAct())return; if(game.pendingStack && game.turn===currentHuman()){drawPenaltyForCurrent(); return} if(!game.drawn && !settings.forcePlay){toast('Draw first, or play a card.'); return} setMessage('You passed your turn.'); nextTurn(currentHuman(),1)};
@@ -367,6 +367,131 @@ body.reduced-motion .start-intro,body.reduced-motion .opening-burst.show{animati
   interceptClick('settingsBtn',()=>settingsScreen());
   interceptClick('resumeBtn',()=>restoreGame());
   interceptClick('drawBtn',()=>humanDraw()); interceptClick('drawPile',()=>humanDraw()); interceptClick('passBtn',()=>passTurn());
+})();
+</script>
+
+<style id="cca-uno-style">
+.uno-dock{position:sticky;top:6px;z-index:12;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px;margin:0 0 10px;padding:9px 12px;border:1px solid #9596d261;border-radius:15px;background:#121735;box-shadow:0 5px 18px #05082080;color:#f4f7ff}
+.uno-dock.is-live{border:2px solid #ffe16e;box-shadow:0 0 22px #ffd65660,0 8px 25px #040619b0;background:#262044;padding:8px 11px}
+.uno-info{flex:1;min-width:160px;display:grid;gap:3px}.uno-eyebrow{font-size:10px;font-weight:1000;letter-spacing:.12em;color:#f8d96f;text-transform:uppercase}.uno-message{font-weight:850;font-size:13px;line-height:1.3}.uno-help{font-size:11px;color:#c5d4f0}.uno-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.uno-button{font:900 15px var(--font);letter-spacing:.04em;min-height:44px;min-width:100px;padding:9px 13px;border:2px solid #fff9;border-radius:11px;box-shadow:0 3px 0 #080a1d;color:#fff;cursor:pointer;background:#bc234b}.uno-button.catch{background:#ffe16e;color:#171729;border-color:#fff2b8}.uno-button:disabled{opacity:.45;cursor:default;box-shadow:none}.uno-button:not(:disabled):active{transform:translateY(2px);box-shadow:none}.uno-button:focus-visible{outline:3px solid white;outline-offset:3px}.uno-time{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums;font-size:11px;color:#ffecac}.uno-time progress{width:100%;flex:1;height:8px;accent-color:#ffdd64}.uno-live-text{min-width:40px;text-align:right}.uno-result{color:#fff2ac}.uno-dock.is-live .uno-eyebrow{color:#fff3ad}.uno-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px}.uno-stats div{background:#ffffff0b;border:1px solid #ffffff24;border-radius:10px;padding:8px;text-align:center;color:#c7d3f4;font-size:11px}.uno-stats strong{display:block;color:#fff;font-size:20px}.uno-call-flash{animation:unoFlash .5s ease-out}@keyframes unoFlash{0%{box-shadow:0 0 0 5px #ffe16e90}100%{box-shadow:0 0 0 0 #ffe16e00}}body.reduced-motion .uno-call-flash{animation:none}.high-contrast .uno-dock{border-color:white}.high-contrast .uno-button{border-color:white}.high-contrast .uno-button:disabled{opacity:.62}
+@media(max-width:630px){.uno-dock{gap:6px;padding:7px 9px}.uno-info{min-width:100%;gap:1px}.uno-button{min-width:90px;min-height:42px;font-size:13px}.uno-actions{width:100%}.uno-actions .uno-button{flex:1}.uno-help{font-size:10px}.uno-message{font-size:12px}}
+
+/* Keep the hand and race dock in view on common Chromebook-height screens. */
+@media(min-width:761px) and (max-height:850px){
+.shell:has(#game:not(.hidden) #unoDock:not(.hidden)){padding-top:10px;padding-bottom:16px}
+.shell:has(#game:not(.hidden) #unoDock:not(.hidden)) .topbar{margin-bottom:10px}
+#game:has(#unoDock:not(.hidden)) .game-top{margin-bottom:7px}
+#game:has(#unoDock:not(.hidden)) .play-area{min-height:0}
+#game:has(#unoDock:not(.hidden)) .arena-center{min-height:175px;flex:0 0 auto;padding-top:0;padding-bottom:0}
+#game:has(#unoDock:not(.hidden)) .pile-zone{padding:9px 15px}
+#game:has(#unoDock:not(.hidden)) .pile-wrap .card{width:84px;height:126px}
+#game:has(#unoDock:not(.hidden)) .pile-wrap .card-big{font-size:62px}
+#game:has(#unoDock:not(.hidden)) .pile-wrap .card-big.symbol{font-size:48px}
+#game:has(#unoDock:not(.hidden)) .opponents{padding-top:9px}
+#game:has(#unoDock:not(.hidden)) .your-zone{padding-top:7px;padding-bottom:10px}
+#game:has(#unoDock:not(.hidden)) .hand-viewport{padding-top:10px;padding-bottom:8px}
+#game:has(#unoDock:not(.hidden)) .hand{min-height:124px}
+#game:has(#unoDock:not(.hidden)) .hand .card{width:75px;height:113px}
+#game:has(#unoDock:not(.hidden)) .hand .card-big{font-size:56px}
+#game:has(#unoDock:not(.hidden)) .hand .card-big.symbol{font-size:42px}
+#game:has(#unoDock:not(.hidden)) .hand .card-corner{font-size:19px}
+#game:has(#unoDock:not(.hidden)) .game-controls .btn{padding:9px 15px}
+}
+</style>
+<script id="cca-uno-v4">
+(function(){
+  // All UNO penalties are house rules; existing educational card effects run after the race.
+  Object.assign(settingsDefaults,{unoMode:'classic',unoSpeed:'standard'});
+  settings={...settingsDefaults,...settings};
+  const LEVELS={easy:{min:2500,max:5000,forget:.35,notice:.45},normal:{min:1500,max:3500,forget:.20,notice:.65},hard:{min:800,max:2000,forget:.10,notice:.82},expert:{min:500,max:1500,forget:.05,notice:.90}};
+  const PENALTIES={classic:2,competitive:4,chaos:7};
+  const counts=()=>({calls:0,catches:0,caught:0,falseCalls:0,missed:0});
+  let race=null, feedback=null, nextFalseAt=0;
+  const dock=document.createElement('section');dock.id='unoDock';dock.className='uno-dock hidden';dock.setAttribute('aria-label','UNO reaction controls');
+  dock.innerHTML='<div class="uno-info"><div class="uno-eyebrow" id="unoLabel">UNO REACTION</div><div class="uno-message" id="unoMessage" role="status" aria-live="polite">One card left? Call UNO!</div><div class="uno-help" id="unoHelp"></div><div class="uno-time hidden" id="unoTime"><progress id="unoMeter" max="100" value="100" aria-label="Reaction time remaining"></progress><span class="uno-live-text" id="unoSeconds" aria-hidden="true"></span></div></div><div class="uno-actions" id="unoActions"><button type="button" class="uno-button" id="unoCall">UNO! <small>[U]</small></button><button type="button" class="uno-button catch" id="unoCatch">CATCH! <small>[C]</small></button><span id="unoLocalActions" style="display:contents"></span></div>';
+  $('game').insertBefore(dock,$('playArea'));
+  function getConfig(){const c=game?.unoConfig||settings;const mode=['classic','competitive','chaos','off'].includes(c.unoMode)?c.unoMode:'classic';const speed=['standard','relaxed','speed','expert'].includes(c.unoSpeed)?c.unoSpeed:'standard';return {mode,speed,difficulty:LEVELS[c.difficulty]?c.difficulty:'normal'}}
+  function enabled(){return !!game&&!game.ended&&getConfig().mode!=='off'}
+  function timing(){const c=getConfig();const base=LEVELS[c.speed==='expert'?'expert':c.difficulty]||LEVELS.normal;const scale=c.speed==='relaxed'?1.65:c.speed==='speed'?.75:1;return {...base,min:Math.round(base.min*scale),max:Math.round(base.max*scale),window:Math.round(base.max*scale+700)}}
+  function penaltyAmount(){return PENALTIES[getConfig().mode]||2}
+  function nameOf(pid){return game?.players[pid]?.name||'Player'}
+  function record(pid,k){if(game.players[pid]?.kind!=='human')return; game.unoStats??={}; game.unoStats[pid]??=counts();game.unoStats[pid][k]=(game.unoStats[pid][k]||0)+1;if(gameMode!=='pass'){progress.unoStats??=counts();progress.unoStats[k]=(progress.unoStats[k]||0)+1;storeProgress()}}
+  function drawPenalty(pid,n){let actual=0;for(let i=0;i<n;i++){if(!drawOne(pid))break;actual++}if(game.players[pid].kind==='human'){progress.draws+=actual;achievementsCheck();storeProgress()}return actual}
+  function clearTimers(){if(race)clearInterval(race.timer);if(feedback)clearTimeout(feedback.timer);race=null;feedback=null;nextFalseAt=0}
+  function idleAllowed(){return enabled()&&!race&&!feedback&&mayAct()&&$('overlay').classList.contains('hidden')}
+  function canUse(pid){return !!race&&race.owner===game&&race.sid===session&&!race.used.has(pid)&&!race.closed&&!document.hidden}
+  function renderDock(){
+    dock.classList.toggle('hidden',!enabled());if(!enabled())return;
+    const call=$('unoCall'),catchBtn=$('unoCatch'),local=$('unoLocalActions');const active=!!race;const r=race;const f=feedback;const pass=gameMode==='pass';const actor=pass&&active?r.target:currentHuman();
+    dock.classList.toggle('is-live',active);dock.classList.toggle('uno-call-flash',!!f);$('unoTime').classList.toggle('hidden',!active);$('unoLabel').textContent=active?'ONE CARD LEFT — REACTION RACE':f?'RACE RESULT':'UNO REACTION • '+getConfig().mode.toUpperCase();
+    $('unoMessage').textContent=active?(r.target===actor?'Call UNO before they catch you!':nameOf(r.target)+' has one card. Catch them!'):f?f.message:'Play down to one card, then call UNO or catch a rival.';
+    $('unoMessage').classList.toggle('uno-result',!!f);$('unoHelp').textContent=active?(pass?nameOf(r.target)+' calls UNO; other players use their own CATCH button.':nameOf(r.target)+' • first valid call wins • +'+penaltyAmount()+' catch penalty'):'Wrong or early call: +2 cards. Correct catch: +'+penaltyAmount()+' cards to the rival.';
+    call.textContent=pass&&active?'UNO! · '+nameOf(r.target):'UNO! [U]';catchBtn.textContent='CATCH! [C]';catchBtn.classList.toggle('hidden',pass&&active);
+    call.disabled=active?!canUse(actor):!idleAllowed()||performance.now()<nextFalseAt;catchBtn.disabled=active?!canUse(actor):!idleAllowed()||performance.now()<nextFalseAt;
+    const wanted=pass&&active?game.players.map((p,i)=>i).filter(i=>i!==r.target):[];
+    if(local.dataset.ids!==wanted.join(',')){local.dataset.ids=wanted.join(',');local.replaceChildren();for(const i of wanted){const b=document.createElement('button');b.type='button';b.className='uno-button catch';b.dataset.unoActor=i;b.textContent='CATCH · '+nameOf(i);b.onclick=()=>attempt(i,'catch');local.appendChild(b)}}
+    local.querySelectorAll('button').forEach(b=>b.disabled=!canUse(Number(b.dataset.unoActor)));
+    if(active)updateTime();
+  }
+  function updateTime(){if(!race)return;const left=Math.max(0,race.limit-race.elapsed);$('unoMeter').value=100*left/race.limit;$('unoSeconds').textContent=(left/1000).toFixed(1)+'s'}
+  function complete(message){
+    const r=race;if(!r||r.closed)return;r.closed=true;clearInterval(r.timer);race=null;
+    if(game!==r.owner||session!==r.sid||game.ended)return;
+    feedback={message,owner:game,sid:session,timer:null};const f=feedback;setMessage(message);render();playSound(message.includes('drew')?'bad':'good');
+    f.timer=setTimeout(()=>{if(feedback!==f)return;feedback=null;if(game!==r.owner||session!==r.sid||game.ended){renderDock();return}renderDock();r.resume()},850);
+  }
+  function attempt(actor,kind){
+    if(!enabled()||!game.players[actor]||game.ended||document.hidden)return;
+    if(!race){
+      if(!idleAllowed()||actor!==currentHuman()||performance.now()<nextFalseAt)return;
+      nextFalseAt=performance.now()+1250;const n=drawPenalty(actor,2);record(actor,'falseCalls');const msg=kind==='uno'?'Too early or no active UNO call!':'False catch — no open UNO race!';setMessage(msg+' '+nameOf(actor)+' drew '+n+'.');render();toast(msg+' +'+n+' cards');playSound('bad');const owner=game,sid=session;setTimeout(()=>{if(game===owner&&session===sid)renderDock()},1260);return;
+    }
+    const r=race;if(!canUse(actor))return;r.used.add(actor);
+    const valid=(kind==='uno'&&actor===r.target)||(kind==='catch'&&actor!==r.target);
+    if(valid&&game.players[r.target].hand.length===1){
+      if(kind==='uno'){game.players[actor].unoDeclared=true;record(actor,'calls');complete(nameOf(actor)+' CALLED UNO! Safe from the catch.');return}
+      const n=drawPenalty(r.target,penaltyAmount());record(actor,'catches');record(r.target,'caught');game.players[r.target].unoDeclared=false;complete(nameOf(actor)+' CAUGHT '+nameOf(r.target)+'! '+nameOf(r.target)+' drew '+n+' card'+(n===1?'':'s')+'.');return;
+    }
+    const n=drawPenalty(actor,2);record(actor,'falseCalls');const msg=nameOf(actor)+' made a false '+(kind==='uno'?'UNO call':'catch')+' and drew '+n+' cards.';setMessage(msg);toast(msg);playSound('bad');
+    if(actor===r.target||game.players[r.target].hand.length!==1){complete(msg);return}render();
+  }
+  function runTick(){
+    const r=race;if(!r)return;if(game!==r.owner||session!==r.sid||game.ended){clearTimers();renderDock();return}
+    const now=performance.now();if(document.hidden||!$('overlay').classList.contains('hidden')){r.last=now;return}
+    r.elapsed+=Math.min(250,Math.max(0,now-r.last));r.last=now;updateTime();
+    while(race===r&&r.events.length&&r.events[0].at<=r.elapsed){const e=r.events.shift();attempt(e.actor,e.kind)}
+    if(race===r&&r.elapsed>=r.limit){record(r.target,'missed');complete('UNO window closed — '+nameOf(r.target)+' escaped without a penalty.')}
+  }
+  // Called only after a card is committed, before any learning question or color picker opens.
+  window.ccaUnoRace=function(pid,resume){
+    if(!enabled()||game.players[pid]?.hand.length!==1){resume();return}
+    if(race||feedback){return}const t=timing();const r={owner:game,sid:session,target:pid,resume,limit:t.window,elapsed:0,last:performance.now(),events:[],used:new Set(),closed:false,timer:null};race=r;game.players[pid].unoDeclared=false;
+    const delay=()=>t.min+Math.random()*(t.max-t.min);
+    game.players.forEach((p,i)=>{if(p.kind!=='ai')return;if(i===pid){if(Math.random()>=t.forget)r.events.push({actor:i,kind:Math.random()<.02?'catch':'uno',at:delay()})}else if(Math.random()<t.notice){r.events.push({actor:i,kind:Math.random()<.025?'uno':'catch',at:delay()})}});
+    r.events.sort((a,b)=>a.at-b.at);setMessage(gameMode!=='pass'&&pid===0?'You have ONE CARD!':nameOf(pid)+' has ONE CARD!');render();
+    // Keep the permanent dock in view before starting any opponent clock.
+    const bounds=dock.getBoundingClientRect();if(bounds.top<0||bounds.bottom>window.innerHeight)dock.scrollIntoView({block:'nearest',behavior:'instant'});
+    r.last=performance.now();r.timer=setInterval(runTick,35);
+  };
+  $('unoCall').onclick=()=>attempt(gameMode==='pass'&&race?race.target:currentHuman(),'uno');$('unoCatch').onclick=()=>attempt(currentHuman(),'catch');
+  document.addEventListener('keydown',e=>{if(!enabled()||e.repeat||e.altKey||e.ctrlKey||e.metaKey||/INPUT|SELECT|TEXTAREA/.test(e.target?.tagName||'')||!$('overlay').classList.contains('hidden'))return;const key=e.key.toLowerCase();if(key==='u'&&!$('unoCall').disabled){e.preventDefault();$('unoCall').click()}else if(key==='c'&&gameMode!=='pass'&&!$('unoCatch').disabled){e.preventDefault();$('unoCatch').click()}});
+  document.addEventListener('visibilitychange',()=>{if(race)race.last=performance.now()});
+  // A separate modal cannot interrupt a card transaction or hide an active reaction window.
+  document.addEventListener('click',e=>{const id=e.target.closest('button')?.id;if(!game||game.ended||!['profileBtn','settingsBtn','tutorialBtn','rulesBtn'].includes(id))return;if(locked||pending||race||feedback||!isHumanTurn()){e.preventDefault();e.stopImmediatePropagation();toast('Finish this turn before opening a menu.')}},true);
+  const baseRender=render;render=function(){baseRender();renderDock()};
+  const baseStart=startGame;startGame=function(...args){clearTimers();const snap={unoMode:settings.unoMode,unoSpeed:settings.unoSpeed,difficulty:settings.difficulty};baseStart(...args);if(game){game.unoConfig=snap;game.unoStats={};renderDock()}};
+  const baseRestore=restoreGame;restoreGame=function(...args){clearTimers();baseRestore(...args);if(game){game.unoConfig??={unoMode:settings.unoMode,unoSpeed:settings.unoSpeed,difficulty:settings.difficulty};game.unoStats??={};renderDock()}};
+  const baseExit=exitGame;exitGame=function(...args){clearTimers();baseExit(...args);renderDock()};
+  const baseFinish=finish;finish=function(pid){clearTimers();baseFinish(pid);renderDock();const stat=game?.unoStats?.[gameMode==='pass'?pid:0];if(stat){const area=document.createElement('div');area.className='feature-panel';area.innerHTML='<h3>UNO reaction results</h3>'+statsHTML(stat);$('dialog').querySelector('.dialog-foot')?.before(area)}};
+  const baseDrawOne=drawOne;drawOne=function(pid){const ok=baseDrawOne(pid);if(ok)game.players[pid].unoDeclared=false;return ok};
+  const baseNext=nextTurn;nextTurn=function(pid,steps){if(game?.lastSpecial&&settings.sevenZero)game.players.forEach(p=>p.unoDeclared=false);baseNext(pid,steps)};
+  function statsHTML(stat){const s={...counts(),...stat};return '<div class="uno-stats">'+[['calls','UNO calls'],['catches','Successful catches'],['caught','Times caught'],['falseCalls','False calls'],['missed','Missed calls']].map(([k,label])=>`<div><strong>${Number(s[k])||0}</strong>${label}</div>`).join('')+'</div>'}
+  // Directly bound menu handlers need capture listeners to use their newest versions.
+  const oldSettings=settingsScreen;settingsScreen=function(){oldSettings();const panel=document.createElement('div');panel.className='house-rules-panel';panel.innerHTML='<h3>UNO reaction challenge</h3><div class="house-rules-grid"><div><label for="unoMode">UNO penalty mode</label><select id="unoMode"><option value="classic">Classic — catch +2</option><option value="competitive">Competitive — catch +4</option><option value="chaos">Chaos — catch +7</option><option value="off">Disabled — no reaction races</option></select></div><div><label for="unoSpeed">Reaction speed (separate from AI skill)</label><select id="unoSpeed"><option value="relaxed">Relaxed — 65% more time</option><option value="standard">Standard — follows AI difficulty</option><option value="speed">Speed challenge — 25% faster</option><option value="expert">Expert — 0.5–1.5 sec AI response</option></select></div></div><p style="font-size:11px;margin:7px 0 0">False or early calls draw 2. These house rules apply to the next new match. Relaxed gives players more time; Expert is optional.</p>';const dialog=$('dialog');dialog.querySelector('.dialog-foot').before(panel);$('unoMode').value=settings.unoMode;$('unoSpeed').value=settings.unoSpeed;const save=$('sDone').onclick;$('sDone').onclick=()=>{settings.unoMode=$('unoMode').value;settings.unoSpeed=$('unoSpeed').value;save();renderDock()}};
+  document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='settingsBtn'){e.preventDefault();e.stopImmediatePropagation();settingsScreen()}else if(b.id==='profileBtn'){e.preventDefault();e.stopImmediatePropagation();displayProgress();const section=document.createElement('div');section.className='feature-panel';section.innerHTML='<h3>UNO reaction stats · Solo / tournament</h3>'+statsHTML(progress.unoStats||{});$('dialog').querySelector('.dialog-foot')?.before(section)}else if(b.id==='rulesBtn'){e.preventDefault();e.stopImmediatePropagation();openRules();const li=document.createElement('li');li.innerHTML='<strong>UNO reaction house rules:</strong> When a card play leaves exactly one card, call UNO before another player catches you. Wrong calls draw 2; successful catches give the target 2, 4 or 7 cards (settings). If nobody calls, play continues without penalty. A missed call can only be caught during its reaction window. UNO penalties bypass Knowledge Shields. Shared-device players use labeled catch buttons. The rule can be turned off.';$('dialog').querySelector('.rules-list')?.appendChild(li)}},true);
+  // Refresh the dock after other menus close, even when no card render follows.
+  const baseClose=closeDialog;closeDialog=function(){baseClose();renderDock()};
+  renderDock();
 })();
 </script>
 
