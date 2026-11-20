@@ -1,6 +1,12 @@
-# Color Clash Academy v4.0 — UNO Reaction Challenge
+# Color Clash Academy v4.1 — Lower UNO Controls
 
 Color Clash Academy is an educational color-matching card game for grades 5–8. It runs entirely in the browser with no student accounts.
+
+## New in v4.1
+
+- UNO and CATCH controls now sit directly beneath the player’s cards, alongside Draw One / Pass Turn / Spark Power on wide screens, and above them on narrow screens.
+- The countdown reserves its space to reduce layout shifts during races. Compact landscape spacing improves visibility on smaller Chromebook screens. The existing automatic scroll safeguard remains active when the controls fall outside the viewport.
+- No changes to reaction timing, penalties, question sequencing or saved data.
 
 ## New in v4.0
 
